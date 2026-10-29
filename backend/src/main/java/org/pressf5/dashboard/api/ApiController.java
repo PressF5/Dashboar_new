@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.env.Environment;
+import java.time.ZoneId;
 import java.time.LocalDate;
 import java.util.Map;
 
@@ -17,11 +19,13 @@ public class ApiController {
     private final DashboardService dashboardService;
     private final ExcelImportService excelImportService;
     private final JdbcTemplate jdbc;
+    private final ZoneId zoneId;
 
-    public ApiController(DashboardService dashboardService, ExcelImportService excelImportService, JdbcTemplate jdbc) {
+    public ApiController(DashboardService dashboardService, ExcelImportService excelImportService, JdbcTemplate jdbc, Environment environment) {
         this.dashboardService = dashboardService;
         this.excelImportService = excelImportService;
         this.jdbc = jdbc;
+        this.zoneId = ZoneId.of(environment.getProperty("app.time-zone", "Europe/Moscow"));
     }
 
     @GetMapping("/dashboard/dates") public Object dates() { return dashboardService.getDates(); }
@@ -44,7 +48,7 @@ public class ApiController {
             String message = ex.getMessage() == null ? "Неизвестная ошибка импорта" : ex.getMessage();
             if (message.length() > 1800) message = message.substring(0, 1800);
             jdbc.update("INSERT INTO import_batch(snapshot_date, original_filename, status, message) VALUES (?, ?, 'FAILED', ?)",
-                    java.time.LocalDate.now(), filename, message);
+                    java.time.LocalDate.now(zoneId), filename, message);
             throw ex;
         }
     }
