@@ -12,7 +12,7 @@ public class DashboardService {
  private final JdbcTemplate jdbc;
  private final ObjectMapper mapper;
  public DashboardService(JdbcTemplate jdbc, ObjectMapper mapper) { this.jdbc = jdbc; this.mapper = mapper; }
- public List<Map<String,Object>> getDates() { return jdbc.queryForList("SELECT snapshot_date AS date FROM statistics_snapshot ORDER BY snapshot_date DESC"); }
+ public List<Map<String,Object>> getDates() { return jdbc.queryForList("SELECT snapshot_date::text AS date FROM statistics_snapshot ORDER BY snapshot_date DESC"); }
  public List<Map<String,Object>> getMsu() { return jdbc.queryForList("SELECT id, name FROM msu ORDER BY name"); }
  public List<Map<String,Object>> getOrganizations(Long msuId) {
   if (msuId == null) return jdbc.queryForList("SELECT id, msu_id AS \"msuId\", name FROM educational_organization ORDER BY name");
