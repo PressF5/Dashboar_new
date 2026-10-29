@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:8081}
+spring:
+  application:
+    name: dashboard-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/school_dashboard}
+    username: ${SPRING_DATASOURCE_USERNAME:dashboard}
+    password: ${SPRING_DATASOURCE_PASSWORD:dashboard}
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+app:
+  time-zone: ${APP_TIME_ZONE:Europe/Moscow}
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:change-me}
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:3000}
