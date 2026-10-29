@@ -1,26 +1,36 @@
 # ТОР «Моя школа» — dashboard
 
-Публичный дашборд статистики по МСУ и образовательным организациям, а также административный импорт Excel-снимков.
+Публичный дашборд статистики по муниципальным системам управления образованием (МСУ) и образовательным организациям (ОО). В репозитории находятся frontend и backend.
 
-## Стек
+## Технологии
+- Java 21, Spring Boot 3.5, Spring Security, JDBC, Liquibase, Apache POI.
+- PostgreSQL 16.
+- Next.js App Router, TypeScript, Tailwind CSS, Recharts, TanStack Query-compatible REST API.
+- Docker Compose.
 
-- Backend: Java 21, Spring Boot, Spring Security, Spring Data JPA, PostgreSQL, Liquibase, Apache POI.
-- Frontend: Next.js App Router, TypeScript, Tailwind CSS, Recharts, TanStack Query.
+## Запуск через Docker
+1. Скопируйте `.env.example` в `.env`.
+2. Замените оба значения `replace_this_value` на длинные уникальные значения.
+3. Запустите `docker compose up --build`.
+4. Откройте http://localhost:3000.
+5. Админ-панель находится по адресу http://localhost:3000/admin/imports.
 
-## Требования
+API использует HTTP Basic для административных маршрутов. Имя и пароль берутся из `ADMIN_USERNAME` и `ADMIN_PASSWORD`. Публичные маршруты доступны без авторизации.
 
-- PostgreSQL 16+
-- Java 21+
-- Node.js 22+
+## Правила данных
+- При открытии дашборда выбирается последняя доступная дата.
+- Пользователь выбирает МСУ, затем при необходимости ОО внутри выбранного МСУ.
+- Группы показателей берутся из заголовков Excel, а значения без данных показываются как «Нет данных»; ноль остаётся числом.
+- Дата снимка определяется временем загрузки с учётом `APP_TIME_ZONE`, имя файла для даты не анализируется.
+- Успешная повторная загрузка в тот же день заменяет предыдущие значения за этот день. Справочники МСУ и ОО не удаляются.
+- Исходный Excel не сохраняется: backend использует временный файл и удаляет его после обработки.
 
-## Структура
+## REST API
+- `GET /api/dashboard/dates`
+- `GET /api/dashboard/msu`
+- `GET /api/dashboard/organizations?msuId=1`
+- `GET /api/dashboard/statistics?date=2026-10-28&msuId=1`
+- `POST /api/admin/imports` — multipart-поле `file`, требуется HTTP Basic
+- `GET /api/admin/imports` — требуется HTTP Basic
 
-- `backend/` — REST API, импорт Excel, схема БД.
-- `frontend/` — публичный дашборд и админ-панель.
-- `docker-compose.yml` — локальная инфраструктура PostgreSQL и приложений.
-
-## Конфигурация
-
-Скопируйте `.env.example` в `.env` и задайте секрет администратора и пароль PostgreSQL. Excel-файлы не сохраняются: сервер обрабатывает загрузку во временном каталоге и удаляет временный файл после завершения.
-
-Подробная инструкция по запуску будет дополняться по мере реализации.
+Перед использованием на реальных данных нужно проверить импорт на исходном Excel-шаблоне и подтвердить соответствие группировок и формул агрегатов. В частности, поддержка вычисленных значений Excel использует сохранённые в книге результаты формул.
