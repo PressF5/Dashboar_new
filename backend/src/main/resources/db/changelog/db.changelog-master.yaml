@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-initial-schema
+      author: pressf5
+      changes:
+        - sqlFile:
+            path: db/changelog/001-initial-schema.sql
+            relativeToChangelogFile: false
+            splitStatements: true
