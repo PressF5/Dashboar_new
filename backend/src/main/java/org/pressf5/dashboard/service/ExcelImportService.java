@@ -53,9 +53,9 @@ public class ExcelImportService {
       Row row=sheet.getRow(ri); if (row==null) continue;
       String orgName=cellText(row.getCell(0),evaluator).trim();
       if (orgName.isBlank() || orgName.equalsIgnoreCase("Школа")) continue;
+      long orgId=ensureOrganization(msuId,orgName);
       Map<String,Object> values=readMetrics(row,metrics,evaluator);
       if (values.values().stream().allMatch(Objects::isNull)) continue;
-      long orgId=ensureOrganization(msuId,orgName);
       jdbc.update("INSERT INTO school_statistics(snapshot_id,organization_id,metrics) VALUES (?, ?, CAST(? AS jsonb)) ON CONFLICT(snapshot_id,organization_id) DO UPDATE SET metrics=EXCLUDED.metrics", snapshotId,orgId,json(values)); schoolCount++;
      }
     }
