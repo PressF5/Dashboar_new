@@ -37,7 +37,16 @@ public class ApiController {
 
     @PostMapping(value = "/admin/imports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> upload(@RequestPart("file") MultipartFile file) {
-        return ResponseEntity.ok(excelImportService.importWorkbook(file));
+        try {
+            return ResponseEntity.ok(excelImportService.importWorkbook(file));
+        } catch (RuntimeException ex) {
+            String filename = file == null ? null : file.getOriginalFilename();
+            String message = ex.getMessage() == null ? "Неизвестная ошибка импорта" : ex.getMessage();
+            if (message.length() > 1800) message = message.substring(0, 1800);
+            jdbc.update("INSERT INTO import_batch(snapshot_date, original_filename, status, message) VALUES (?, ?, 'FAILED', ?)",
+                    java.time.LocalDate.now(), filename, message);
+            throw ex;
+        }
     }
 
     @GetMapping("/admin/imports")
