@@ -94,11 +94,11 @@ public class ExcelImportService {
  }
  private Map<String,Object> readMetrics(Row row,List<Metric> metrics,FormulaEvaluator evaluator) {
   Map<String,Object> map=new LinkedHashMap<>();
-  DataFormatter formatter=new DataFormatter(Locale.ROOT);
   for(Metric m:metrics) {
    Cell cell=row.getCell(m.column,Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
    Object v=value(cell,evaluator);
-   if(m.percentage && v instanceof Number n && cell!=null && formatter.formatCellValue(cell,evaluator).contains("%") && n.doubleValue()>=0 && n.doubleValue()<=1) v=n.doubleValue()*100.0;
+   String format=cell==null?"":cell.getCellStyle().getDataFormatString();
+   if(m.percentage && v instanceof Number n && format.contains("%") && n.doubleValue()>=0 && n.doubleValue()<=1) v=n.doubleValue()*100.0;
    map.put(m.key,v);
   }
   return map;
@@ -106,8 +106,11 @@ public class ExcelImportService {
  private Object value(Cell cell,FormulaEvaluator evaluator) {
   if(cell==null) return null;
   CellType type=cell.getCellType();
-  if(type==CellType.FORMULA && evaluator!=null) { CellValue v=evaluator.evaluate(cell); if(v==null) return null; type=v.getCellType(); if(type==CellType.NUMERIC) return v.getNumberValue(); if(type==CellType.STRING) return clean(v.getStringValue()); if(type==CellType.BOOLEAN) return v.getBooleanValue(); return null; }
-  if(type==CellType.NUMERIC) return cell.getNumericCellValue(); if(type==CellType.STRING) return clean(cell.getStringCellValue()); if(type==CellType.BOOLEAN) return cell.getBooleanCellValue(); return null;
+  if(type==CellType.FORMULA) type=cell.getCachedFormulaResultType();
+  if(type==CellType.NUMERIC) return cell.getNumericCellValue();
+  if(type==CellType.STRING) return clean(cell.getStringCellValue());
+  if(type==CellType.BOOLEAN) return cell.getBooleanCellValue();
+  return null;
  }
  private String cellText(Cell cell,FormulaEvaluator evaluator) { Object v=value(cell,evaluator); return v==null?"":String.valueOf(v); }
  private String clean(String value) { if(value==null) return null; String s=value.trim(); return s.isEmpty()||s.equals("-")||s.equals("—")?null:s; }
