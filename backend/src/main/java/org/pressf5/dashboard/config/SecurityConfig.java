@@ -33,7 +33,7 @@ public class SecurityConfig {
     @Bean SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/admin/**"))
                 .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .authorizeHttpRequests(auth -> auth.requestMatchers(request -> "OPTIONS".equals(request.getMethod())).permitAll().requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").permitAll().anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults()).build();
     }
