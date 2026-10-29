@@ -1,0 +1,10 @@
+CREATE TABLE msu (id BIGSERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL UNIQUE, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE educational_organization (id BIGSERIAL PRIMARY KEY, msu_id BIGINT NOT NULL REFERENCES msu(id), name VARCHAR(300) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), CONSTRAINT uk_organization_msu_name UNIQUE (msu_id, name));
+CREATE TABLE import_batch (id BIGSERIAL PRIMARY KEY, uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(), snapshot_date DATE NOT NULL, original_filename VARCHAR(255), status VARCHAR(20) NOT NULL, message TEXT, schools_read INTEGER NOT NULL DEFAULT 0, created_or_updated_msu INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX idx_import_batch_uploaded_at ON import_batch(uploaded_at DESC);
+CREATE TABLE statistics_snapshot (id BIGSERIAL PRIMARY KEY, snapshot_date DATE NOT NULL UNIQUE, source_import_id BIGINT REFERENCES import_batch(id), created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE school_statistics (id BIGSERIAL PRIMARY KEY, snapshot_id BIGINT NOT NULL REFERENCES statistics_snapshot(id) ON DELETE CASCADE, organization_id BIGINT NOT NULL REFERENCES educational_organization(id), metrics JSONB NOT NULL DEFAULT '{}'::jsonb, CONSTRAINT uk_school_statistics_snapshot_org UNIQUE (snapshot_id, organization_id));
+CREATE TABLE msu_statistics (id BIGSERIAL PRIMARY KEY, snapshot_id BIGINT NOT NULL REFERENCES statistics_snapshot(id) ON DELETE CASCADE, msu_id BIGINT NOT NULL REFERENCES msu(id), metrics JSONB NOT NULL DEFAULT '{}'::jsonb, CONSTRAINT uk_msu_statistics_snapshot_msu UNIQUE (snapshot_id, msu_id));
+CREATE TABLE dashboard_metric (metric_key VARCHAR(80) PRIMARY KEY, label VARCHAR(300) NOT NULL, metric_order INTEGER NOT NULL, category_key VARCHAR(80) NOT NULL, category_label VARCHAR(200) NOT NULL, unit VARCHAR(30), is_percentage BOOLEAN NOT NULL DEFAULT FALSE);
+CREATE INDEX idx_school_statistics_snapshot ON school_statistics(snapshot_id);
+CREATE INDEX idx_msu_statistics_snapshot ON msu_statistics(snapshot_id);
