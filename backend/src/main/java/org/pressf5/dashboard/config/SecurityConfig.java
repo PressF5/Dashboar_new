@@ -23,7 +23,7 @@ public class SecurityConfig {
     @Bean UserDetailsService userDetailsService(PasswordEncoder encoder,
             @Value("${app.admin.username}") String username,
             @Value("${app.admin.password}") String password) {
-        if (password == null || password.isBlank() || password.equals("change-me")) {
+        if (password == null || password.isBlank() || (password.equals("change-me") || password.equals("replace_this_value"))) {
             throw new IllegalStateException("Set ADMIN_PASSWORD before starting the backend.");
         }
         return new InMemoryUserDetailsManager(User.withUsername(username)
