@@ -35,7 +35,7 @@ public class ExcelImportService {
     if (general == null) throw new IllegalArgumentException("В книге отсутствует лист «Общее».");
     Row headersRow=general.getRow(1);
     if (headersRow == null || headersRow.getLastCellNum() < 2) throw new IllegalArgumentException("Не найдена строка заголовков на листе «Общее».");
-    List<Metric> metrics=buildMetrics(headersRow);
+    List<Metric> metrics=buildMetrics(headersRow, general);
     upsertDefinitions(metrics);
     Long batchId=jdbc.queryForObject("INSERT INTO import_batch(snapshot_date, original_filename, status, message) VALUES (?, ?, 'PROCESSING', 'Обработка файла') RETURNING id", Long.class, date, filename);
     jdbc.update("INSERT INTO statistics_snapshot(snapshot_date, source_import_id) VALUES (?, ?) ON CONFLICT(snapshot_date) DO UPDATE SET source_import_id=EXCLUDED.source_import_id, created_at=now()", date, batchId);
@@ -68,19 +68,40 @@ public class ExcelImportService {
    throw new IllegalArgumentException("Не удалось обработать Excel: " + (ex.getMessage()==null ? "ошибка чтения файла" : ex.getMessage()),ex);
   } finally { if (temp!=null) try { Files.deleteIfExists(temp); } catch (Exception ignored) { } }
  }
- private List<Metric> buildMetrics(Row row) {
+ private List<Metric> buildMetrics(Row row, Sheet sheet) {
   List<Metric> result=new ArrayList<>();
-  for (int c=1;c<row.getLastCellNum();c++) { String label=cellText(row.getCell(c),null).trim(); if (label.isBlank()) continue;
-   String cat=c<=7?"general":c<=11?"setup":c<=17?"activity":c<=27?"homework":c<=34?"registration":"online";
-   String catLabel=switch(cat){case "general"->"Общие сведения";case "setup"->"Настройка и готовность";case "activity"->"Активность";case "homework"->"Домашние задания";case "registration"->"Регистрация пользователей";default->"Онлайн-уроки";};
-   boolean percent=label.contains("%") || label.toLowerCase(Locale.ROOT).contains("процент"); result.add(new Metric("metric_"+c,label,c,cat,catLabel,percent?"%":null,percent));
-  } return result;
+  Row groups=sheet.getRow(0); String currentGroup="Показатели";
+  for (int c=1;c<row.getLastCellNum();c++) {
+   String label=cellText(row.getCell(c),null).trim(); if (label.isBlank()) continue;
+   String group=groups==null?"":cellText(groups.getCell(c),null).trim();
+   if (group.isBlank() && groups!=null) {
+    for (org.apache.poi.ss.util.CellRangeAddress range:sheet.getMergedRegions()) {
+     if (range.getFirstRow()<=0 && range.getLastRow()>=0 && range.getFirstColumn()<=c && range.getLastColumn()>=c) {
+      group=cellText(groups.getCell(range.getFirstColumn()),null).trim(); break;
+     }
+    }
+   }
+   if (!group.isBlank()) currentGroup=group;
+   String categoryLabel=currentGroup;
+   String category="group_"+categoryLabel.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+","_").replaceAll("^_+|_+$","");
+   boolean percent=label.contains("%") || label.toLowerCase(Locale.ROOT).contains("процент");
+   result.add(new Metric("metric_"+c,label,c,category,categoryLabel,percent?"%":null,percent));
+  }
+  return result;
  }
  private void upsertDefinitions(List<Metric> metrics) {
   for (Metric m:metrics) jdbc.update("INSERT INTO dashboard_metric(metric_key,label,metric_order,category_key,category_label,unit,is_percentage) VALUES(?,?,?,?,?,?,?) ON CONFLICT(metric_key) DO UPDATE SET label=EXCLUDED.label,metric_order=EXCLUDED.metric_order,category_key=EXCLUDED.category_key,category_label=EXCLUDED.category_label,unit=EXCLUDED.unit,is_percentage=EXCLUDED.is_percentage",m.key,m.label,m.column,m.category,m.categoryLabel,m.unit,m.percentage);
  }
  private Map<String,Object> readMetrics(Row row,List<Metric> metrics,FormulaEvaluator evaluator) {
-  Map<String,Object> map=new LinkedHashMap<>(); for(Metric m:metrics) map.put(m.key,value(row.getCell(m.column,Row.MissingCellPolicy.RETURN_BLANK_AS_NULL),evaluator)); return map;
+  Map<String,Object> map=new LinkedHashMap<>();
+  DataFormatter formatter=new DataFormatter(Locale.ROOT);
+  for(Metric m:metrics) {
+   Cell cell=row.getCell(m.column,Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+   Object v=value(cell,evaluator);
+   if(m.percentage && v instanceof Number n && cell!=null && formatter.formatCellValue(cell,evaluator).contains("%") && n.doubleValue()>=0 && n.doubleValue()<=1) v=n.doubleValue()*100.0;
+   map.put(m.key,v);
+  }
+  return map;
  }
  private Object value(Cell cell,FormulaEvaluator evaluator) {
   if(cell==null) return null;
