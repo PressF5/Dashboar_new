@@ -4,7 +4,8 @@ import { ArrowLeft, CheckCircle2, FileSpreadsheet, LockKeyhole, UploadCloud } fr
 const API=process.env.NEXT_PUBLIC_API_BASE_URL||"http://localhost:8081";
 type RecordRow={id:number;uploaded_at:string;snapshot_date:string;original_filename:string;status:string;message:string;schools_read:number;created_or_updated_msu:number};
 export default function ImportsPage(){
- const [publicationFile,setPublicationFile]=useState<File|null>(null),[publicationBusy,setPublicationBusy]=useState(false);\n const [username,setUsername]=useState(""),[password,setPassword]=useState(""),[authorized,setAuthorized]=useState(false),[file,setFile]=useState<File|null>(null),[records,setRecords]=useState<RecordRow[]>([]),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
+ const [publicationFile,setPublicationFile]=useState<File|null>(null),[publicationBusy,setPublicationBusy]=useState(false);
+ const [username,setUsername]=useState(""),[password,setPassword]=useState(""),[authorized,setAuthorized]=useState(false),[file,setFile]=useState<File|null>(null),[records,setRecords]=useState<RecordRow[]>([]),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
  const auth=()=>"Basic "+btoa(username+":"+password);
  async function loadHistory(){const r=await fetch(API+"/api/admin/imports",{headers:{Authorization:auth()}});if(!r.ok){setAuthorized(false);setMessage(r.status===401?"Проверьте логин и пароль администратора.":"Нет доступа к API.");return false}setAuthorized(true);setRecords(await r.json());setMessage("");return true}
  async function login(e:FormEvent){e.preventDefault();await loadHistory()}
