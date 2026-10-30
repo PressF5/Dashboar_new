@@ -7,3 +7,11 @@ databaseChangeLog:
             path: db/changelog/001-initial-schema.sql
             relativeToChangelogFile: false
             splitStatements: true
+  - changeSet:
+      id: 002-publications-statistics
+      author: pressf5
+      changes:
+        - sqlFile:
+            path: db/changelog/002-publications-statistics.sql
+            relativeToChangelogFile: false
+            splitStatements: true
